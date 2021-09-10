@@ -5,17 +5,19 @@ pragma solidity 0.8.4;
 import "./OrbitauERC721Enumerable.sol";
 import "../../lib/utils/cryptography/draft-EIP712.sol";
 
-contract OrbitauERC721LazyMint is OrbitauERC721Enumerable, EIP712 {
-    string private constant SIGNING_DOMAIN = "OrbiTAU";
+contract OrbitauERC721LazyMint is OrbitauERC721Enumerable, EIP712 {    
+    mapping(address => bool) public signers;
+
+    string private constant SIGNING_DOMAIN = "OrbitauNFT";
     string private constant SIGNATURE_VERSION = "1";
 
     /**
      * @dev Emitted when a pending token is redeemed in the lazy-minting protocol.
      */
     event Redeem(
-        address indexed minter,
+        address indexed signer,
         address indexed redeemer,
-        string uri,
+        uint256 _tokenType, uint256 tokenId,
         bytes signature);
 
     /**
@@ -26,39 +28,36 @@ contract OrbitauERC721LazyMint is OrbitauERC721Enumerable, EIP712 {
     constructor() OrbitauERC721Enumerable() EIP712(SIGNING_DOMAIN, SIGNATURE_VERSION)
     {}
 
-    /**
-     * @dev Implement a lazy minting mechanism in which the NFT-minting process is delayed until the first order is successful.
-     * This function should be handled by a smart contract which is allowed by the `minter`.
-     * @notice It throws if
-     *      - `msg.sender` is not the `minter` or has not been approved by the `minter`.
-     *      - redeem data and signature are not valid.
-     *      - if the redeemer is a contract and it cannot receive the NFT.
-     * @param redeemer The address that the minted NFT will be transferred to.
-     * @param uri The URI consists of metadata description of the minting NFT on the IPFS (without prefix).
-     * @param signature The signature signed by `to` designating `msg.sender` to mint the NFT for it.
-     */
-    function redeem(address redeemer, string calldata uri, bytes calldata signature)
+    function addSigner(address _signer) external onlyOwner {
+        require(_signer != address(0), "ERR_SIGNER_IS_ZERO_ADDRESS");
+        signers[_signer] = true;
+    }
+
+    function removeSigner(address _signer) external onlyOwner {
+        require(_signer != address(0), "ERR_SIGNER_IS_ZERO_ADDRESS");
+        signers[_signer] = false;
+    }
+
+    function redeem(uint256 _tokenType, uint256 tokenId, bytes calldata signature)
     external
     {
-        address minter = _verify(_hash(uri), signature);
-        require(msg.sender == minter || isApprovedForAll(minter, msg.sender), "MUST_BE_OWNER_OR_APPROVED");
+        address _signer = _verify(_hash(msg.sender, _tokenType, tokenId), signature);
+        
+        require(signers[_signer], "ERR_INVALID_SIGNATURE");
 
-        // mint the token to the signer
-        uint256 id = mint(minter, uri);
+        safeMint(msg.sender, tokenId, _tokenType);        
 
-        // transfer the minted token to the redeemer
-        _safeTransfer(minter, redeemer, id, "");
-
-        emit Redeem(minter, redeemer, uri, signature);
+        emit Redeem(_signer, msg.sender, _tokenType, tokenId, signature);
     }
 
     /// @notice Returns a hash of the given PendingNFT, prepared using EIP712 typed data hashing rules.
-    function _hash(string calldata uri)
+    function _hash(address redeemer, uint256 _tokenType, uint256 tokenId)
     internal view returns (bytes32)
     {
         return _hashTypedDataV4(keccak256(abi.encode(
-                keccak256("OrbitauNFT(string uri)"),
-                keccak256(bytes(uri))
+                keccak256("OrbitauNFT(address redeemer, uint256 _tokenType, uint256 tokenId)"),
+                _tokenType,
+                tokenId
             )));
     }
 

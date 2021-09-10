@@ -6,12 +6,11 @@ import "../../lib/token/ERC721/ERC721.sol";
 import "../../lib/access/Ownable.sol";
 import "../../lib/security/Pausable.sol";
 import "../../lib/token/ERC721/extensions/ERC721Pausable.sol";
-
+import "../../lib/utils/Strings.sol";
 contract OrbitauERC721 is ERC721Pausable, Ownable {
-    /**
-     * @dev Mapping from NFT ID to metadata uri.
-     */
-    mapping(uint256 => string) internal idToUri;
+    using Strings for uint256;
+    
+    mapping(uint256 => uint256) private _idToType;
 
     /**
      * @dev The base URI for all NFT.
@@ -23,7 +22,7 @@ contract OrbitauERC721 is ERC721Pausable, Ownable {
      *
      */
     constructor() ERC721("Orbitau ERC721", "Orbitau") Ownable() Pausable() {
-        __baseURI = "";
+        __baseURI = "https://metadata.orbitau.io/";
     }
 
     /**
@@ -42,49 +41,27 @@ contract OrbitauERC721 is ERC721Pausable, Ownable {
         _unpause();
     }
 
-    /**
-      * @dev Safely mint a new NFT.
-      * @notice It throws an exception if
-      *    - `to` is a "ZERO_ADDRESS.
-      *    - If `to` refers to a smart contract, it must implement {IERC721Receiver-onERC721Received}, which is called upon a safe transfer.
-      * @param to The address that will own the minted NFT.
-      * @param uri The URI consists of metadata description of the minting NFT on the IPFS (without prefix).
-      */
     function safeMint(
-        address to,
-        string calldata uri
-    )
-    public
+        address to,        
+        uint256 _tokenType,
+        uint256 tokenId)
+    internal virtual
     returns (uint256)
     {
-        uint256 id = uint256(keccak256(abi.encode(to, uri)));
+        _safeMint(to, tokenId);
+        _setTokenType(tokenId, _tokenType);
 
-        _safeMint(to, id);
-        _setTokenUri(id, uri);
-
-        return id;
+        return tokenId;
     }
 
-    /**
-      * @dev Mint a new NFT.
-      * @notice It throws an exception if
-      *    - `to` is a "ZERO_ADDRESS.
-      * @param to The address that will own the minted NFT.
-      * @param uri The URI consists of metadata description of the minting NFT on the IPFS (without prefix).
-      */
-    function mint(
-        address to,
-        string calldata uri
-    )
-    public
+    function mint(address to, uint256 _tokenType, uint256 tokenId)
+    internal virtual
     returns (uint256)
     {
-        uint256 id = uint256(keccak256(abi.encode(to, uri)));
+        _mint(to, tokenId);
+        _setTokenType(tokenId, _tokenType);
 
-        _mint(to, id);
-        _setTokenUri(id, uri);
-
-        return id;
+        return tokenId;
     }
 
     /**
@@ -93,7 +70,13 @@ contract OrbitauERC721 is ERC721Pausable, Ownable {
     function tokenURI(uint256 tokenId) public view virtual override returns (string memory) {
         require(_exists(tokenId), "ERC721Metadata: URI query for nonexistent token");
 
-        return bytes(__baseURI).length > 0 ? string(abi.encodePacked(__baseURI, idToUri[tokenId])) : idToUri[tokenId];
+        //return string(abi.encodePacked(__baseURI, _idToType[tokenId], tokenId));
+        return string(abi.encodePacked(__baseURI, _idToType[tokenId].toString(), '/', tokenId.toString()));
+    }
+    
+    function tokenType(uint256 tokenId) public view virtual returns (uint256) {
+        require(_exists(tokenId), "ERC721Metadata: Type query for nonexistent token");
+        return _idToType[tokenId];
     }
 
     /**
@@ -109,7 +92,7 @@ contract OrbitauERC721 is ERC721Pausable, Ownable {
     function baseURI() external view returns(string memory) {
         return __baseURI;
     }
-
+    
     /**
      * @dev Base URI for computing {tokenURI}. If set, the resulting URI for each
      * token will be the concatenation of the `baseURI` and the `tokenId`.
@@ -118,22 +101,14 @@ contract OrbitauERC721 is ERC721Pausable, Ownable {
         return __baseURI;
     }
 
-    /**
-     * @dev Set a distinct URI (RFC 3986) for a given NFT ID.
-     * @notice This is an internal function which should be called from user-implemented external
-     * function.
-     * @notice It throws an exception if the _tokenId does not exist.
-     * @param _tokenId Id for which we want URI.
-     * @param _uri String representing RFC 3986 URI.
-     */
-    function _setTokenUri(
+    function _setTokenType(
         uint256 _tokenId,
-        string calldata _uri
+        uint256 _type
     )
     internal
     {
         require(_exists(_tokenId), "TOKEN_ID_NOT_EXISTED");
-        idToUri[_tokenId] = _uri;
+        _idToType[_tokenId] = _type;
     }
 
 }
