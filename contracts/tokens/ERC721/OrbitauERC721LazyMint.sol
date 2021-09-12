@@ -56,6 +56,7 @@ contract OrbitauERC721LazyMint is OrbitauERC721Enumerable, EIP712 {
     {
         return _hashTypedDataV4(keccak256(abi.encode(
                 keccak256("OrbitauNFT(address redeemer, uint256 _tokenType, uint256 tokenId)"),
+                redeemer,
                 _tokenType,
                 tokenId
             )));
