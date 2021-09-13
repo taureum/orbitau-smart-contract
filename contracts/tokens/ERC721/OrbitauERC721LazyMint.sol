@@ -45,7 +45,7 @@ contract OrbitauERC721LazyMint is OrbitauERC721Enumerable, EIP712 {
         
         require(signers[_signer], "ERR_INVALID_SIGNATURE");
 
-        safeMint(msg.sender, tokenId, _tokenType);        
+        safeMint(msg.sender, _tokenType, tokenId);
 
         emit Redeem(_signer, msg.sender, _tokenType, tokenId, signature);
     }
