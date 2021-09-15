@@ -10,12 +10,22 @@ import "../../lib/utils/Strings.sol";
 contract OrbitauERC721 is ERC721Pausable, Ownable {
     using Strings for uint256;
     
-    mapping(uint256 => uint256) private _idToType;
+    mapping(uint256 => bool) private _idFreeze;
 
     /**
      * @dev The base URI for all NFT.
      */
     string private __baseURI;
+    
+    /**
+     * @dev Emitted when a pending token is redeemed in the lazy-minting protocol.
+     */
+    event Redeem(address indexed owner, uint256 tokenId);
+    event Equip(address indexed owner, uint256 tokenId); 
+    
+    function _transferable(uint256 tokenId) internal view virtual returns (bool) {
+        return !_idFreeze[tokenId];
+    }
 
     /**
      * @dev Create a new OrbitauERC721 contract.
@@ -41,26 +51,40 @@ contract OrbitauERC721 is ERC721Pausable, Ownable {
         _unpause();
     }
 
+    function equip(uint256 tokenId) external virtual {
+        require(ownerOf(tokenId) == msg.sender, "OrbitauERC721: equip caller is not owner nor approved");
+        require(!_idFreeze[tokenId], "OrbitauERC721: nft equipped");
+        _idFreeze[tokenId] = true;
+        emit Equip(msg.sender, tokenId);
+    }
+    
+    function redeem(address redeemer, uint256 tokenId) internal virtual returns (uint256) {
+        if(_exists(tokenId)){
+            require(ownerOf(tokenId) == msg.sender, "OrbitauERC721: redeemer caller is not owner nor approved");
+            require(_idFreeze[tokenId], "OrbitauERC721: nft redeemed");
+            _idFreeze[tokenId] = false;
+        }else{
+            safeMint(redeemer, tokenId);
+        }
+        emit Redeem(redeemer, tokenId);
+        return tokenId;
+    }
+
     function safeMint(
-        address to,        
-        uint256 _tokenType,
+        address to,
         uint256 tokenId)
     internal virtual
     returns (uint256)
     {
         _safeMint(to, tokenId);
-        _setTokenType(tokenId, _tokenType);
-
         return tokenId;
     }
 
-    function mint(address to, uint256 _tokenType, uint256 tokenId)
+    function mint(address to, uint256 tokenId)
     internal virtual
     returns (uint256)
     {
         _mint(to, tokenId);
-        _setTokenType(tokenId, _tokenType);
-
         return tokenId;
     }
 
@@ -71,14 +95,9 @@ contract OrbitauERC721 is ERC721Pausable, Ownable {
         require(_exists(tokenId), "ERC721Metadata: URI query for nonexistent token");
 
         //return string(abi.encodePacked(__baseURI, _idToType[tokenId], tokenId));
-        return string(abi.encodePacked(__baseURI, _idToType[tokenId].toString(), '/', tokenId.toString()));
+        return string(abi.encodePacked(__baseURI, tokenId.toString()));
     }
     
-    function tokenType(uint256 tokenId) public view virtual returns (uint256) {
-        require(_exists(tokenId), "ERC721Metadata: Type query for nonexistent token");
-        return _idToType[tokenId];
-    }
-
     /**
      * @dev Sets new value for the `__baseURI`. This operation can only been done by the owner of this contract.
      */
@@ -101,14 +120,8 @@ contract OrbitauERC721 is ERC721Pausable, Ownable {
         return __baseURI;
     }
 
-    function _setTokenType(
-        uint256 _tokenId,
-        uint256 _type
-    )
-    internal
-    {
-        require(_exists(_tokenId), "TOKEN_ID_NOT_EXISTED");
-        _idToType[_tokenId] = _type;
+    function _beforeTokenTransfer(address from, address to, uint256 tokenId) internal virtual override (ERC721Pausable) {
+        ERC721Pausable._beforeTokenTransfer(from, to, tokenId);
+        require(_transferable(tokenId), "OrbitauERC721: token transfer while equipped");
     }
-
 }

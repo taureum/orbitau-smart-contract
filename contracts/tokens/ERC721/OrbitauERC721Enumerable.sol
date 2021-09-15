@@ -52,7 +52,8 @@ contract OrbitauERC721Enumerable is OrbitauERC721, ERC721Enumerable {
      *
      * To learn more about hooks, head to xref:ROOT:extending-contracts.adoc#using-hooks[Using Hooks].
      */
-    function _beforeTokenTransfer(address from, address to, uint256 tokenId) internal override(ERC721Pausable, ERC721Enumerable) {
+    function _beforeTokenTransfer(address from, address to, uint256 tokenId) internal virtual override(OrbitauERC721, ERC721Enumerable) {
+        OrbitauERC721._beforeTokenTransfer(from, to, tokenId);
         ERC721Enumerable._beforeTokenTransfer(from, to, tokenId);
     }
 }

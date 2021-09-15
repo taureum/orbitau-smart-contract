@@ -12,15 +12,6 @@ contract OrbitauERC721LazyMint is OrbitauERC721Enumerable, EIP712 {
     string private constant SIGNATURE_VERSION = "1";
 
     /**
-     * @dev Emitted when a pending token is redeemed in the lazy-minting protocol.
-     */
-    event Redeem(
-        address indexed signer,
-        address indexed redeemer,
-        uint256 _tokenType, uint256 tokenId,
-        bytes signature);
-
-    /**
      * @dev Create a new OrbitauNFTLazyMint contract and and assign `DEFAULT_ADMIN_ROLE, MINTER_ROLE` for the creator.
      * This construction function should be called from an exchange.
      *
@@ -38,26 +29,23 @@ contract OrbitauERC721LazyMint is OrbitauERC721Enumerable, EIP712 {
         signers[_signer] = false;
     }
 
-    function redeem(uint256 _tokenType, uint256 tokenId, bytes calldata signature)
+    function redeem(uint256 tokenId, bytes calldata signature)
     external
     {
-        address _signer = _verify(_hash(msg.sender, _tokenType, tokenId), signature);
+        address _signer = _verify(_hash(msg.sender, tokenId), signature);
         
         require(signers[_signer], "ERR_INVALID_SIGNATURE");
 
-        safeMint(msg.sender, _tokenType, tokenId);
-
-        emit Redeem(_signer, msg.sender, _tokenType, tokenId, signature);
+        redeem(msg.sender, tokenId);
     }
 
     /// @notice Returns a hash of the given PendingNFT, prepared using EIP712 typed data hashing rules.
-    function _hash(address redeemer, uint256 _tokenType, uint256 tokenId)
+    function _hash(address redeemer, uint256 tokenId)
     internal view returns (bytes32)
     {
         return _hashTypedDataV4(keccak256(abi.encode(
-                keccak256("OrbitauNFT(address redeemer, uint256 _tokenType, uint256 tokenId)"),
+                keccak256("OrbitauNFT(address redeemer, uint256 tokenId)"),
                 redeemer,
-                _tokenType,
                 tokenId
             )));
     }
