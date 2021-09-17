@@ -51,7 +51,7 @@ contract OrbitauERC721 is ERC721Pausable, Ownable {
         _unpause();
     }
 
-    function equip(uint256 tokenId) external virtual {
+    function equip(uint256 tokenId) internal virtual {
         require(ownerOf(tokenId) == msg.sender, "OrbitauERC721: equip caller is not owner nor approved");
         require(!_idFreeze[tokenId], "OrbitauERC721: nft equipped");
         _idFreeze[tokenId] = true;

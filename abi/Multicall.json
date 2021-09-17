@@ -1371,7 +1371,7 @@
   },
   "networks": {},
   "schemaVersion": "3.4.3",
-  "updatedAt": "2021-09-15T10:26:33.341Z",
+  "updatedAt": "2021-09-17T17:04:05.384Z",
   "devdoc": {
     "details": "Provides a function to batch together multiple calls in a single external call. _Available since v4.1._",
     "kind": "dev",
