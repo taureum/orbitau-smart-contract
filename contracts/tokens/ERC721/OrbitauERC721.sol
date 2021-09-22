@@ -60,8 +60,8 @@ contract OrbitauERC721 is ERC721Pausable, Ownable {
     
     function redeem(address redeemer, uint256 tokenId) internal virtual returns (uint256) {
         if(_exists(tokenId)){
-            require(ownerOf(tokenId) == msg.sender, "OrbitauERC721: redeemer caller is not owner nor approved");
-            require(_idFreeze[tokenId], "OrbitauERC721: nft redeemed");
+            //require(ownerOf(tokenId) == msg.sender, "OrbitauERC721: redeemer caller is not owner nor approved");
+            //require(_idFreeze[tokenId], "OrbitauERC721: nft redeemed");
             _idFreeze[tokenId] = false;
         }else{
             safeMint(redeemer, tokenId);
@@ -93,9 +93,12 @@ contract OrbitauERC721 is ERC721Pausable, Ownable {
      */
     function tokenURI(uint256 tokenId) public view virtual override returns (string memory) {
         require(_exists(tokenId), "ERC721Metadata: URI query for nonexistent token");
-
-        //return string(abi.encodePacked(__baseURI, _idToType[tokenId], tokenId));
         return string(abi.encodePacked(__baseURI, tokenId.toString()));
+    }
+    
+    function isFreeze(uint256 tokenId) public view virtual returns (bool) {
+        require(_exists(tokenId), "ERC721Metadata: Freeze query for nonexistent token");
+        return _idFreeze[tokenId];
     }
     
     /**

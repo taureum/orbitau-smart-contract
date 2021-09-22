@@ -39,23 +39,29 @@ contract OrbitauERC721LazyMint is OrbitauERC721Enumerable, EIP712 {
         equip(tokenId);
     }
 
-    function redeem(uint256 tokenId, bytes calldata signature)
+    function redeem(address owner, address redeemer, uint256 tokenId, bytes calldata signature)
     external
     {
-        address _signer = _verify(_hash(msg.sender, tokenId), signature);
+        address _signer = _verify(_hash(owner, tokenId), signature);
         
         require(signers[_signer], "ERR_INVALID_SIGNATURE");
-
-        redeem(msg.sender, tokenId);
+        
+        require(msg.sender == owner || isApprovedForAll(owner, msg.sender), "MUST_BE_OWNER_OR_APPROVED");
+        
+        redeem(owner, tokenId);
+        
+        if(owner != redeemer){
+            _safeTransfer(owner, redeemer, tokenId, "");
+        }
     }
 
     /// @notice Returns a hash of the given PendingNFT, prepared using EIP712 typed data hashing rules.
-    function _hash(address redeemer, uint256 tokenId)
+    function _hash(address owner, uint256 tokenId)
     internal view returns (bytes32)
     {
         return _hashTypedDataV4(keccak256(abi.encode(
-                keccak256("OrbitauNFT(address redeemer, uint256 tokenId)"),
-                redeemer,
+                keccak256("OrbitauNFT(address owner, uint256 tokenId)"),
+                owner,
                 tokenId
             )));
     }
