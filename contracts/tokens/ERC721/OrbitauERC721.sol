@@ -96,6 +96,14 @@ contract OrbitauERC721 is ERC721Pausable, Ownable {
         return string(abi.encodePacked(__baseURI, tokenId.toString()));
     }
     
+    function isRedeemed(uint256 tokenId) public view virtual returns (bool) {
+        if(_exists(tokenId)){
+            return _idFreeze[tokenId] == true;
+        } else {
+            return false;
+        }
+    }
+    
     function isFreeze(uint256 tokenId) public view virtual returns (bool) {
         require(_exists(tokenId), "ERC721Metadata: Freeze query for nonexistent token");
         return _idFreeze[tokenId];
