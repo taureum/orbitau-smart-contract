@@ -98,7 +98,7 @@ contract OrbitauERC721 is ERC721Pausable, Ownable {
     
     function isRedeemed(uint256 tokenId) public view virtual returns (bool) {
         if(_exists(tokenId)){
-            return _idFreeze[tokenId] == true;
+            return _idFreeze[tokenId] == false;
         } else {
             return false;
         }
